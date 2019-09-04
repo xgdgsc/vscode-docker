@@ -39,6 +39,7 @@ export class DockerBuildTaskProvider implements TaskProvider {
                     folder: task.scope as WorkspaceFolder,
                     platform: taskPlatform,
                     actionContext: actionContext,
+                    cancellationToken: token,
                 },
                 task));
     }

@@ -34,7 +34,8 @@ export class DockerDebugConfigurationProvider implements DebugConfigurationProvi
                 {
                     folder: folder || await quickPickWorkspaceFolder('To debug with Docker you must first open a folder or workspace in VS Code.'),
                     platform: debugPlatform,
-                    actionContext: actionContext
+                    actionContext: actionContext,
+                    cancellationToken: token,
                 },
                 debugConfiguration));
     }
