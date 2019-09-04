@@ -43,6 +43,7 @@ export class DockerBuildTaskProvider implements TaskProvider {
                 task));
     }
 
+    // TODO: Skip if image is freshly built
     private async resolveTaskInternal(context: DockerBuildTaskContext, task: DockerBuildTask): Promise<Task> {
         context.actionContext.telemetry.properties.platform = context.platform;
 

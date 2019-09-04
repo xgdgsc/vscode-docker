@@ -43,6 +43,7 @@ export class DockerRunTaskProvider implements TaskProvider {
                 task));
     }
 
+    // TODO: Can we skip if a recently-started image exists?
     private async resolveTaskInternal(context: DockerRunTaskContext, task: DockerRunTask): Promise<Task> {
         context.actionContext.telemetry.properties.platform = context.platform;
 
