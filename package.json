@@ -470,22 +470,6 @@
         },
         "debuggers": [
             {
-                "type": "docker",
-                "label": "Docker: Node.js",
-                "configurationSnippets": [
-                    {
-                        "label": "Docker: Attach to Node",
-                        "description": "Docker: Attach to Node",
-                        "body": {
-                            "type": "node",
-                            "request": "attach",
-                            "name": "Docker: Attach to Node",
-                            "remoteRoot": "/usr/src/app"
-                        }
-                    }
-                ]
-            },
-            {
                 "type": "docker-launch",
                 "label": "Docker: Launch",
                 "configurationAttributes": {
@@ -560,9 +544,20 @@
                 }
             },
             {
-                "type": "docker-node",
+                "type": "docker",
                 "label": "Docker: Node.js",
-                "configurationSnippets": []
+                "configurationSnippets": [
+                    {
+                        "label": "Docker: Attach to Node",
+                        "description": "Docker: Attach to Node",
+                        "body": {
+                            "type": "node",
+                            "request": "attach",
+                            "name": "Docker: Attach to Node",
+                            "remoteRoot": "/usr/src/app"
+                        }
+                    }
+                ]
             },
             {
                 "type": "docker-coreclr",
