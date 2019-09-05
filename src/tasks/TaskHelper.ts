@@ -4,10 +4,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CancellationToken, ExtensionContext, QuickPickItem, Task, TaskDefinition, tasks, workspace, WorkspaceFolder } from 'vscode';
-import { ext } from 'vscode-azureappservice/out/src/extensionVariables';
 import { IActionContext } from 'vscode-azureextensionui';
 import { DockerDebugConfiguration } from '../debugging/DockerDebugConfigurationProvider';
 import { DockerPlatform } from '../debugging/DockerPlatformHelper';
+import { ext } from '../extensionVariables';
 import { DockerBuildOptions } from './DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition, DockerBuildTaskProvider } from './DockerBuildTaskProvider';
 import { DockerRunOptions } from './DockerRunTaskDefinitionBase';
