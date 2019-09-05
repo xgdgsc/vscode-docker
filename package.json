@@ -470,19 +470,24 @@
         },
         "debuggers": [
             {
-                "type": "docker-launch",
-                "label": "Docker: Launch",
+                "type": "docker",
+                "label": "Docker: Node.js",
                 "configurationSnippets": [
                     {
-                        "label": "Docker: Launch",
-                        "description": "Docker: Launch",
+                        "label": "Docker: Attach to Node",
+                        "description": "Docker: Attach to Node",
                         "body": {
-                            "type": "docker-launch",
-                            "request": "launch",
-                            "preLaunchTask": "docker-build"
+                            "type": "node",
+                            "request": "attach",
+                            "name": "Docker: Attach to Node",
+                            "remoteRoot": "/usr/src/app"
                         }
                     }
-                ],
+                ]
+            },
+            {
+                "type": "docker-launch",
+                "label": "Docker: Launch",
                 "configurationAttributes": {
                     "launch": {
                         "properties": {
