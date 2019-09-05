@@ -45,7 +45,6 @@ export class DockerDebugConfigurationProvider implements DebugConfigurationProvi
 
         const helper = this.getHelper(context.platform);
         const resolvedConfiguration = await helper.resolveDebugConfiguration(context, originalConfiguration);
-        await this.validateResolvedConfiguration(resolvedConfiguration);
 
         if (resolvedConfiguration) {
             await this.validateResolvedConfiguration(resolvedConfiguration);
