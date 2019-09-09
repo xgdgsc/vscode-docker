@@ -5,7 +5,7 @@
 
 import { getDefaultContainerName } from '../../tasks/TaskHelper';
 import { DebugHelper, DockerDebugContext, DockerDebugScaffoldContext, inferContainerName, ResolvedDebugConfiguration } from '../DebugHelper';
-import { DockerDebugConfigurationBase } from '../DockerDebugConfigurationBase';
+import { DockerDebugConfigurationBase, DockerServerReadyAction } from '../DockerDebugConfigurationBase';
 import { DockerDebugConfiguration } from '../DockerDebugConfigurationProvider';
 
 export interface PythonPathMapping {
@@ -48,7 +48,18 @@ export class PythonDebugHelper implements DebugHelper {
     }
 
     public async resolveDebugConfiguration(context: DockerDebugContext, debugConfiguration: PythonDockerDebugConfiguration): Promise<ResolvedDebugConfiguration | undefined> {
-        //const options = debugConfiguration.python || {};
+        const containerName = inferContainerName(debugConfiguration, context, getDefaultContainerName(context.folder.name));
+
+        /* TODO : Python DockerServerReadyAction options?
+        const dockerServerReadyAction = resolveDockerServerReadyAction(
+            debugConfiguration,
+            {
+                containerName: containerName
+            },
+            false
+        );
+        */
+        const dockerServerReadyAction: DockerServerReadyAction = undefined;
 
         return {
             ...debugConfiguration,
@@ -60,7 +71,7 @@ export class PythonDebugHelper implements DebugHelper {
             justMyCode: debugConfiguration.python.justMyCode,
             serverReadyAction: debugConfiguration.serverReadyAction,
             dockerOptions: {
-                containerNameToKill: inferContainerName(debugConfiguration, context, getDefaultContainerName(context.folder.name)),
+                containerNameToKill: containerName,
                 dockerServerReadyAction: dockerServerReadyAction,
                 removeContainerAfterDebug: debugConfiguration.removeContainerAfterDebug
             }
