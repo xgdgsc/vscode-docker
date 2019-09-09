@@ -595,6 +595,53 @@
                                         ]
                                     }
                                 }
+                            },
+                            "python": {
+                                "description": "Options for building Python projects in Docker.",
+                                "properties": {
+                                    "module": {
+                                        "type": "string",
+                                        "description": "The Python module to run."
+                                    },
+                                    "file": {
+                                        "type": "string",
+                                        "description": "The Python file to run.",
+                                        "default": "${file}"
+                                    },
+                                    "django": {
+                                        "type": "boolean",
+                                        "description": "Django debugging."
+                                    },
+                                    "jinja": {
+                                        "type": "boolean",
+                                        "description": "Jinja (e.g. Flask) debugging."
+                                    },
+                                    "pathMappings": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "localRoot": {
+                                                    "type": "string",
+                                                    "description": "The host path."
+                                                },
+                                                "remoteRoot": {
+                                                    "type": "string",
+                                                    "description": "The container path."
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "justMyCode": {
+                                        "type": "boolean",
+                                        "description": "Debug only user-written code."
+                                    },
+                                    "wait": {
+                                        "type": "boolean",
+                                        "description": "Whether to wait for debugger to attach.",
+                                        "default": true
+                                    }
+                                }
                             }
                         }
                     }
