@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See LICENSE.md in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { getDefaultContainerName } from '../../tasks/TaskHelper';
 import { DebugHelper, DockerDebugContext, DockerDebugScaffoldContext, inferContainerName, ResolvedDebugConfiguration } from '../DebugHelper';
 import { DockerDebugConfigurationBase, DockerServerReadyAction } from '../DockerDebugConfigurationBase';
 import { DockerDebugConfiguration } from '../DockerDebugConfigurationProvider';
@@ -29,7 +28,7 @@ export class PythonDebugHelper implements DebugHelper {
         // tslint:disable: no-invalid-template-strings
         return [
             {
-                name: 'Docker Python Launch and Attach',
+                name: 'Docker: Python Launch and Attach',
                 type: 'docker',
                 request: 'launch',
                 preLaunchTask: 'docker-run: debug',
@@ -48,7 +47,7 @@ export class PythonDebugHelper implements DebugHelper {
     }
 
     public async resolveDebugConfiguration(context: DockerDebugContext, debugConfiguration: PythonDockerDebugConfiguration): Promise<ResolvedDebugConfiguration | undefined> {
-        const containerName = inferContainerName(debugConfiguration, context, getDefaultContainerName(context.folder.name));
+        const containerName = inferContainerName(debugConfiguration, context, context.folder.name);
 
         /* TODO : Python DockerServerReadyAction options?
         const dockerServerReadyAction = resolveDockerServerReadyAction(

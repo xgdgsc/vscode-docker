@@ -26,9 +26,9 @@ export namespace pyExtension {
     export async function getRemoteLauncherCommand(target: FileTarget | ModuleTarget, args?: string[], options?: DebugLaunchOptions): Promise<string> {
         let fullTarget: string;
         if ((target as FileTarget).file) {
-            fullTarget = `\'${(target as FileTarget).file}\'`;
+            fullTarget = (target as FileTarget).file;
         } else if ((target as ModuleTarget).module) {
-            fullTarget = `-m \'${(target as ModuleTarget).module}\'`;
+            fullTarget = `-m ${(target as ModuleTarget).module}`;
         } else {
             throw new Error('One of either module or file must be given.');
         }

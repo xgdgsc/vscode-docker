@@ -519,7 +519,8 @@
                                 "description": "The target plaform for the application.",
                                 "enum": [
                                     "netCore",
-                                    "node"
+                                    "node",
+                                    "python"
                                 ]
                             },
                             "netCore": {
@@ -879,7 +880,8 @@
                         "description": "The target plaform for the application.",
                         "enum": [
                             "netCore",
-                            "node"
+                            "node",
+                            "python"
                         ]
                     },
                     "netCore": {
@@ -1046,7 +1048,8 @@
                         "description": "The target plaform for the application.",
                         "enum": [
                             "netCore",
-                            "node"
+                            "node",
+                            "python"
                         ]
                     },
                     "netCore": {
@@ -1090,6 +1093,7 @@
                         "oneOf": [
                             {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "description": "Options for building Python applications in Docker.",
                                 "properties": {
                                     "file": {
@@ -1113,6 +1117,7 @@
                             },
                             {
                                 "type": "object",
+                                "additionalProperties": false,
                                 "description": "Options for building Python applications in Docker.",
                                 "properties": {
                                     "module": {
