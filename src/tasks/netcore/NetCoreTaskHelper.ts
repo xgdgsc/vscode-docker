@@ -17,7 +17,7 @@ import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuil
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
 import { DockerRunTaskDefinition } from '../DockerRunTaskProvider';
-import { DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, resolveWorkspaceFolderPath, TaskHelper, unresolveWorkspaceFolderPath } from '../TaskHelper';
+import { addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, resolveWorkspaceFolderPath, TaskHelper, unresolveWorkspaceFolderPath } from '../TaskHelper';
 
 export interface NetCoreTaskOptions {
     appProject?: string;
@@ -105,7 +105,7 @@ export class NetCoreTaskHelper implements TaskHelper {
 
         // tslint:disable: no-invalid-template-strings
         buildOptions.context = buildOptions.context || '${workspaceFolder}';
-        buildOptions.dockerfile = buildOptions.dockerfile || path.join('${workspaceFolder}', 'Dockerfile');
+        buildOptions.dockerfile = buildOptions.dockerfile || '${workspaceFolder}/Dockerfile';
         // tslint:enable: no-invalid-template-strings
         buildOptions.tag = buildOptions.tag || await NetCoreTaskHelper.getImageName(helperOptions.appProject);
         buildOptions.labels = buildOptions.labels || NetCoreTaskHelper.defaultLabels;
@@ -210,7 +210,7 @@ export class NetCoreTaskHelper implements TaskHelper {
 
         if (runOptions.volumes) {
             for (const volume of runOptions.volumes) {
-                NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, volume);
+                addVolumeWithoutConflicts(volumes, volume);
             }
         }
 
@@ -255,11 +255,11 @@ export class NetCoreTaskHelper implements TaskHelper {
             permissions: 'ro'
         };
 
-        NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, appVolume);
-        NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, srcVolume);
-        NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, debuggerVolume);
-        NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, nugetVolume);
-        NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, nugetFallbackVolume);
+        addVolumeWithoutConflicts(volumes, appVolume);
+        addVolumeWithoutConflicts(volumes, srcVolume);
+        addVolumeWithoutConflicts(volumes, debuggerVolume);
+        addVolumeWithoutConflicts(volumes, nugetVolume);
+        addVolumeWithoutConflicts(volumes, nugetFallbackVolume);
 
         if (userSecrets || ssl) {
             const hostSecretsFolders = LocalAspNetCoreSslManager.getHostSecretsFolders();
@@ -271,7 +271,7 @@ export class NetCoreTaskHelper implements TaskHelper {
                 permissions: 'ro'
             };
 
-            NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, userSecretsVolume);
+            addVolumeWithoutConflicts(volumes, userSecretsVolume);
 
             if (ssl) {
                 const certVolume: DockerContainerVolume = {
@@ -280,22 +280,12 @@ export class NetCoreTaskHelper implements TaskHelper {
                     permissions: 'ro'
                 };
 
-                NetCoreTaskHelper.addVolumeWithoutConflicts(volumes, certVolume);
+                addVolumeWithoutConflicts(volumes, certVolume);
             }
         }
 
         return volumes;
     }
-
-    private static addVolumeWithoutConflicts(volumes: DockerContainerVolume[], volume: DockerContainerVolume): boolean {
-        if (volumes.find(v => v.containerPath === volume.containerPath)) {
-            return false;
-        }
-
-        volumes.push(volume);
-        return true;
-    }
-
 }
 
 const netCoreTaskHelper = new NetCoreTaskHelper();
