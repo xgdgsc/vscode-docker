@@ -10,14 +10,14 @@ import * as process from 'process';
 import { WorkspaceFolder } from 'vscode';
 import { LocalAspNetCoreSslManager } from '../../debugging/coreclr/LocalAspNetCoreSslManager';
 import { NetCoreDebugHelper, NetCoreDebugOptions } from '../../debugging/netcore/NetCoreDebugHelper';
-import { getValidImageName } from '../../utils/getValidImageName';
 import { PlatformOS } from '../../utils/platform';
 import { quickPickProjectFileItem } from '../../utils/quick-pick-file';
+import { resolveFilePath, unresolveFilePath } from '../../utils/resolveFilePath';
 import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
 import { DockerRunTaskDefinition } from '../DockerRunTaskProvider';
-import { addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, inferImageName, resolveWorkspaceFolderPath, TaskHelper, unresolveWorkspaceFolderPath } from '../TaskHelper';
+import { addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, getDefaultContainerName, getDefaultImageName, inferImageName, TaskHelper } from '../TaskHelper';
 
 export interface NetCoreTaskOptions {
     appProject?: string;
@@ -54,11 +54,11 @@ export class NetCoreTaskHelper implements TaskHelper {
                 label: 'docker-build: debug',
                 dependsOn: ['build'],
                 dockerBuild: {
-                    tag: NetCoreTaskHelper.getDefaultImageName(options.appProject, 'dev'), // The 'dev' here is redundant but added to differentiate from below's 'latest'
+                    tag: getDefaultImageName(context.folder.name, 'dev'),
                     target: 'base',
                 },
                 netCore: {
-                    appProject: unresolveWorkspaceFolderPath(context.folder, options.appProject)
+                    appProject: unresolveFilePath(options.appProject, context.folder)
                 }
             },
             {
@@ -66,10 +66,10 @@ export class NetCoreTaskHelper implements TaskHelper {
                 label: 'docker-build: release',
                 dependsOn: ['build'],
                 dockerBuild: {
-                    tag: NetCoreTaskHelper.getDefaultImageName(options.appProject, 'latest'),
+                    tag: getDefaultImageName(context.folder.name, 'latest'), // The 'latest' here is redundant but added to differentiate from above's 'dev'
                 },
                 netCore: {
-                    appProject: unresolveWorkspaceFolderPath(context.folder, options.appProject)
+                    appProject: unresolveFilePath(options.appProject, context.folder)
                 }
             }
         ];
@@ -91,7 +91,7 @@ export class NetCoreTaskHelper implements TaskHelper {
                     os: options.platformOS === 'Windows' ? 'Windows' : undefined, // Default is Linux so we'll leave it undefined for brevity
                 },
                 netCore: {
-                    appProject: unresolveWorkspaceFolderPath(context.folder, options.appProject)
+                    appProject: unresolveFilePath(options.appProject, context.folder)
                 }
             }
         ];
@@ -99,15 +99,12 @@ export class NetCoreTaskHelper implements TaskHelper {
 
     public async resolveDockerBuildOptions(context: DockerBuildTaskContext, buildDefinition: NetCoreBuildTaskDefinition): Promise<DockerBuildOptions> {
         const buildOptions = buildDefinition.dockerBuild;
-        const helperOptions = buildDefinition.netCore || {};
-
-        helperOptions.appProject = await NetCoreTaskHelper.inferAppProject(context.folder, helperOptions); // This method internally checks the user-defined input first
 
         // tslint:disable: no-invalid-template-strings
         buildOptions.context = buildOptions.context || '${workspaceFolder}';
         buildOptions.dockerfile = buildOptions.dockerfile || '${workspaceFolder}/Dockerfile';
         // tslint:enable: no-invalid-template-strings
-        buildOptions.tag = buildOptions.tag || NetCoreTaskHelper.getDefaultImageName(helperOptions.appProject);
+        buildOptions.tag = buildOptions.tag || getDefaultImageName(context.folder.name);
         buildOptions.labels = buildOptions.labels || NetCoreTaskHelper.defaultLabels;
 
         return buildOptions;
@@ -119,10 +116,10 @@ export class NetCoreTaskHelper implements TaskHelper {
 
         helperOptions.appProject = await NetCoreTaskHelper.inferAppProject(context.folder, helperOptions); // This method internally checks the user-defined input first
 
-        runOptions.containerName = runOptions.containerName || NetCoreTaskHelper.getDefaultContainerName(helperOptions.appProject);
+        runOptions.containerName = runOptions.containerName || getDefaultContainerName(context.folder.name);
         runOptions.labels = runOptions.labels || NetCoreTaskHelper.defaultLabels;
         runOptions.os = runOptions.os || 'Linux';
-        runOptions.image = inferImageName(runDefinition, context, NetCoreTaskHelper.getDefaultImageName(helperOptions.appProject));
+        runOptions.image = inferImageName(runDefinition, context, context.folder.name, 'dev');
 
         const ssl = helperOptions.configureSsl !== undefined ? helperOptions.configureSsl : await NetCoreTaskHelper.inferSsl(context.folder, helperOptions);
         const userSecrets = ssl === true ? true : await this.inferUserSecrets(helperOptions);
@@ -142,14 +139,6 @@ export class NetCoreTaskHelper implements TaskHelper {
         return runOptions;
     }
 
-    public static getDefaultImageName(appProject: string, tag?: string): string {
-        return getValidImageName(appProject, tag || 'dev');
-    }
-
-    public static getDefaultContainerName(appProject: string, tag?: string): string {
-        return `${getValidImageName(appProject)}-${tag || 'dev'}`;
-    }
-
     public static async inferAppFolder(folder: WorkspaceFolder, helperOptions: NetCoreTaskOptions | NetCoreDebugOptions): Promise<string> {
         if (helperOptions.appProject) {
             return path.dirname(helperOptions.appProject);
@@ -162,7 +151,7 @@ export class NetCoreTaskHelper implements TaskHelper {
         let result: string;
 
         if (helperOptions && helperOptions.appProject) {
-            result = resolveWorkspaceFolderPath(folder, helperOptions.appProject);
+            result = resolveFilePath(helperOptions.appProject, folder);
         } else {
             // Find a .csproj or .fsproj in the folder
             const item = await quickPickProjectFileItem(undefined, folder, 'No .NET Core project file (.csproj or .fsproj) could be found.');

@@ -9,8 +9,8 @@ import * as path from 'path';
 import { DebugConfiguration } from 'vscode';
 import { ext } from '../../extensionVariables';
 import { NetCoreTaskHelper, NetCoreTaskOptions } from '../../tasks/netcore/NetCoreTaskHelper';
-import { unresolveWorkspaceFolderPath } from '../../tasks/TaskHelper';
 import { PlatformOS } from '../../utils/platform';
+import { unresolveFilePath } from '../../utils/resolveFilePath';
 import { ChildProcessProvider } from '../coreclr/ChildProcessProvider';
 import { CommandLineDotNetClient } from '../coreclr/CommandLineDotNetClient';
 import { LocalFileSystemProvider } from '../coreclr/fsProvider';
@@ -92,7 +92,7 @@ export class NetCoreDebugHelper implements DebugHelper {
                 request: 'launch',
                 preLaunchTask: 'docker-run: debug',
                 netCore: {
-                    appProject: unresolveWorkspaceFolderPath(context.folder, options.appProject)
+                    appProject: unresolveFilePath(options.appProject, context.folder)
                 }
             }
         ];
@@ -105,17 +105,20 @@ export class NetCoreDebugHelper implements DebugHelper {
         const { configureSsl, containerName, platformOS } = await this.loadExternalInfo(context, debugConfiguration);
         const appOutput = await this.inferAppOutput(debugConfiguration.netCore);
         if (context.cancellationToken && context.cancellationToken.isCancellationRequested) {
+            // inferAppOutput is slow, give a chance to cancel
             return undefined;
         }
 
         await this.acquireDebuggers(platformOS);
         if (context.cancellationToken && context.cancellationToken.isCancellationRequested) {
+            // acquireDebuggers is slow, give a chance to cancel
             return undefined;
         }
 
         if (configureSsl) {
             await this.configureSsl(debugConfiguration, appOutput);
             if (context.cancellationToken && context.cancellationToken.isCancellationRequested) {
+                // configureSsl is slow, give a chance to cancel
                 return undefined;
             }
         }
@@ -127,15 +130,12 @@ export class NetCoreDebugHelper implements DebugHelper {
         const dockerServerReadyAction = await this.inferServerReadyAction(debugConfiguration, containerName, configureSsl);
 
         return {
-            name: debugConfiguration.name,
+            ...debugConfiguration,
             type: 'coreclr',
             request: 'launch',
             program: debugConfiguration.program || 'dotnet',
             args: debugConfiguration.args || [additionalProbingPathsArgs, containerAppOutput].join(' '),
             cwd: debugConfiguration.cwd || platformOS === 'Windows' ? 'C:\\app' : '/app',
-            env: debugConfiguration.env,
-            launchBrowser: debugConfiguration.launchBrowser,
-            serverReadyAction: debugConfiguration.serverReadyAction,
             dockerOptions: {
                 containerNameToKill: containerName,
                 dockerServerReadyAction: dockerServerReadyAction,
@@ -152,7 +152,6 @@ export class NetCoreDebugHelper implements DebugHelper {
                     '/remote_debugger/vsdbg',
                 quoteArgs: false,
             },
-            preLaunchTask: debugConfiguration.preLaunchTask,
             sourceFileMap: debugConfiguration.sourceFileMap || {
                 '/app/Views': path.join(path.dirname(debugConfiguration.netCore.appProject), 'Views'),
             }
@@ -172,7 +171,7 @@ export class NetCoreDebugHelper implements DebugHelper {
 
         return {
             configureSsl: associatedTask && associatedTask.netCore && associatedTask.netCore.configureSsl !== undefined ? associatedTask.netCore.configureSsl : await NetCoreTaskHelper.inferSsl(context.folder, debugConfiguration.netCore),
-            containerName: inferContainerName(debugConfiguration, context, NetCoreTaskHelper.getDefaultContainerName(debugConfiguration.netCore.appProject)),
+            containerName: inferContainerName(debugConfiguration, context, context.folder.name),
             platformOS: associatedTask && associatedTask.dockerRun && associatedTask.dockerRun.os || 'Linux',
         }
     }

@@ -6,11 +6,12 @@
 import * as fse from 'fs-extra';
 import * as path from 'path';
 import { ShellQuotedString, WorkspaceFolder } from 'vscode';
+import { resolveFilePath } from '../../utils/resolveFilePath';
 import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
 import { DockerRunTaskDefinition } from '../DockerRunTaskProvider';
-import { DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, inferImageName, TaskHelper } from '../TaskHelper';
+import { DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, getDefaultContainerName, getDefaultImageName, inferImageName, TaskHelper } from '../TaskHelper';
 
 interface NodePackage {
     main?: string;
@@ -87,10 +88,10 @@ export class NodeTaskHelper implements TaskHelper {
         }
 
         if (buildOptions.tag === undefined) {
-            buildOptions.tag = NodeTaskHelper.getDefaultImageName(packageName);
+            buildOptions.tag = getDefaultImageName(packageName);
         }
 
-        return await Promise.resolve(buildOptions);
+        return buildOptions;
     }
 
     public async resolveDockerRunOptions(context: DockerRunTaskContext, runDefinition: NodeRunTaskDefinition): Promise<DockerRunOptions> {
@@ -101,11 +102,11 @@ export class NodeTaskHelper implements TaskHelper {
         const packageName = await NodeTaskHelper.inferPackageName(packagePath);
 
         if (runOptions.containerName === undefined) {
-            runOptions.containerName = NodeTaskHelper.getDefaultContainerName(packageName);
+            runOptions.containerName = getDefaultContainerName(packageName);
         }
 
         if (runOptions.image === undefined) {
-            runOptions.image = inferImageName(runDefinition, context, NodeTaskHelper.getDefaultImageName(packageName));
+            runOptions.image = inferImageName(runDefinition, context, packageName);
         }
 
         if (helperOptions && helperOptions.enableDebugging) {
@@ -141,22 +142,25 @@ export class NodeTaskHelper implements TaskHelper {
             }
         }
 
-        return await Promise.resolve(runOptions);
+        return runOptions;
     }
 
-    public static getDefaultImageName(packageName: string): string {
-        return `${packageName}:latest`;
-    }
-
-    public static getDefaultContainerName(packageName: string): string {
-        return `${packageName}-dev`;
-    }
-
-    private static inferPackagePath(packageFile: string | undefined, folder: WorkspaceFolder): string {
+    public static inferPackagePath(packageFile: string | undefined, folder: WorkspaceFolder): string {
         if (packageFile !== undefined) {
-            return this.resolveFilePath(packageFile, folder);
+            return resolveFilePath(packageFile, folder);
         } else {
             return path.join(folder.uri.fsPath, 'package.json');
+        }
+    }
+
+    public static async inferPackageName(packagePath: string): Promise<string> {
+        const packageJson = await fse.readFile(packagePath, 'utf8');
+        const packageContent = <NodePackage>JSON.parse(packageJson);
+
+        if (packageContent.name !== undefined) {
+            return packageContent.name;
+        } else {
+            return path.basename(path.dirname(packagePath));
         }
     }
 
@@ -166,19 +170,6 @@ export class NodeTaskHelper implements TaskHelper {
 
     private static inferDockerfilePath(packagePath: string): string {
         return path.join(path.dirname(packagePath), 'Dockerfile');
-    }
-
-    private static async inferPackageName(packagePath: string): Promise<string> {
-        const packageJson = await fse.readFile(packagePath, 'utf8');
-        const packageContent = <NodePackage>JSON.parse(packageJson);
-
-        if (packageContent.name !== undefined) {
-            return packageContent.name;
-        } else {
-            const packageBaseDirName = await Promise.resolve(path.basename(path.dirname(packagePath)));
-
-            return packageBaseDirName;
-        }
     }
 
     private static async inferCommand(packagePath: string, inspectMode: InspectMode, inspectPort: number): Promise<string | ShellQuotedString[]> {
@@ -203,12 +194,6 @@ export class NodeTaskHelper implements TaskHelper {
         }
 
         throw new Error(`Unable to infer the command to run the application within the container. Set the 'dockerRun.command' property and include the Node.js '${inspectArgWithPort}' argument.`);
-    }
-
-    private static resolveFilePath(filePath: string, folder: WorkspaceFolder): string {
-        const replacedPath = filePath.replace(/\$\{workspaceFolder\}/gi, folder.uri.fsPath);
-
-        return path.resolve(folder.uri.fsPath, replacedPath);
     }
 }
 

@@ -9,10 +9,11 @@ import { callWithTelemetryAndErrorHandling, IActionContext } from 'vscode-azuree
 import { DockerPlatform, getPlatform } from '../debugging/DockerPlatformHelper';
 import { cloneObject } from '../utils/cloneObject';
 import { CommandLineBuilder } from '../utils/commandLineBuilder';
+import { resolveFilePath } from '../utils/resolveFilePath';
 import { DockerBuildOptions } from './DockerBuildTaskDefinitionBase';
 import { NetCoreBuildTaskDefinition } from './netcore/NetCoreTaskHelper';
 import { NodeBuildTaskDefinition } from './node/NodeTaskHelper';
-import { DockerBuildTaskContext, resolveWorkspaceFolderPath, TaskHelper } from './TaskHelper';
+import { DockerBuildTaskContext, TaskHelper } from './TaskHelper';
 
 export interface DockerBuildTaskDefinition extends NetCoreBuildTaskDefinition, NodeBuildTaskDefinition {
     label?: string;
@@ -74,18 +75,18 @@ export class DockerBuildTaskProvider implements TaskProvider {
 
     private async validateResolvedDefinition(context: DockerBuildTaskContext, dockerBuild: DockerBuildOptions): Promise<void> {
         if (!dockerBuild.tag) {
-            throw new Error('No Docker image name was resolved.');
+            throw new Error('No Docker image name was provided or resolved.');
         }
 
         if (!dockerBuild.context) {
-            throw new Error('No Docker build context was resolved.');
-        } else if (!await fse.pathExists(resolveWorkspaceFolderPath(context.folder, dockerBuild.context))) {
+            throw new Error('No Docker build context was provided or resolved.');
+        } else if (!await fse.pathExists(resolveFilePath(dockerBuild.context, context.folder))) {
             throw new Error(`The Docker build context \'${dockerBuild.context}\' does not exist or could not be accessed.`);
         }
 
         if (!dockerBuild.dockerfile) {
-            throw new Error('No Dockerfile was resolved.');
-        } else if (!await fse.pathExists(resolveWorkspaceFolderPath(context.folder, dockerBuild.dockerfile))) {
+            throw new Error('No Dockerfile was provided or resolved.');
+        } else if (!await fse.pathExists(resolveFilePath(dockerBuild.dockerfile, context.folder))) {
             throw new Error(`The Dockerfile \'${dockerBuild.dockerfile}\' does not exist or could not be accessed.`);
         }
     }

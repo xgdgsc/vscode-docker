@@ -8,6 +8,7 @@ import { IActionContext } from 'vscode-azureextensionui';
 import { DockerDebugConfiguration } from '../debugging/DockerDebugConfigurationProvider';
 import { DockerPlatform } from '../debugging/DockerPlatformHelper';
 import { ext } from '../extensionVariables';
+import { resolveFilePath } from '../utils/resolveFilePath';
 import { DockerBuildOptions } from './DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition, DockerBuildTaskProvider } from './DockerBuildTaskProvider';
 import { DockerContainerPort, DockerContainerVolume, DockerRunOptions } from './DockerRunTaskDefinitionBase';
@@ -107,7 +108,7 @@ export async function getOfficialBuildTaskForDockerfile(dockerfile: string, fold
                 arg = a.value;
             }
 
-            arg = resolveWorkspaceFolderPath(folder, arg);
+            arg = resolveFilePath(arg, folder);
             return arg.toLowerCase() === dockerfile.toLowerCase();
         }));
 
@@ -131,19 +132,20 @@ export async function getOfficialBuildTaskForDockerfile(dockerfile: string, fold
     return undefined;
 }
 
-export function resolveWorkspaceFolderPath(folder: WorkspaceFolder, folderPath: string): string {
-    return folderPath.replace(/\$\{workspaceFolder\}/gi, folder.uri.fsPath);
-}
-
-export function unresolveWorkspaceFolderPath(folder: WorkspaceFolder, folderPath: string): string {
-    // tslint:disable-next-line: no-invalid-template-strings
-    return folderPath.replace(folder.uri.fsPath, '${workspaceFolder}').replace(/\\/g, '/');
-}
-
-export function inferImageName(runOptions: DockerRunTaskDefinition, context: DockerRunTaskContext, defaultImageName: string): string {
+export function inferImageName(runOptions: DockerRunTaskDefinition, context: DockerRunTaskContext, defaultNameHint: string, defaultTag?: 'dev' | 'latest'): string {
     return (runOptions && runOptions.dockerRun && runOptions.dockerRun.image)
         || (context && context.buildDefinition && context.buildDefinition.dockerBuild && context.buildDefinition.dockerBuild.tag)
-        || defaultImageName;
+        || getDefaultImageName(defaultNameHint, defaultTag);
+}
+
+export function getDefaultImageName(nameHint: string, tag?: 'dev' | 'latest'): string {
+    tag = tag || 'latest';
+    return getValidImageNameWithTag(nameHint, tag);
+}
+
+export function getDefaultContainerName(nameHint: string, tag?: 'dev' | 'latest'): string {
+    tag = tag || 'dev';
+    return `${getValidImageName(nameHint)}-${tag}`;
 }
 
 // tslint:disable-next-line: no-any
@@ -209,4 +211,18 @@ export function addPortWithoutConflicts(ports: DockerContainerPort[], port: Dock
 
     ports.push(port);
     return true;
+}
+
+function getValidImageName(nameHint: string): string {
+    let result = nameHint.replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+    if (result.length === 0) {
+        result = 'image'
+    }
+
+    return result;
+}
+
+function getValidImageNameWithTag(nameHint: string, tag: 'dev' | 'latest'): string {
+    return `${getValidImageName(nameHint)}:${tag}`
 }
