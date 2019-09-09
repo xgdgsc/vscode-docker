@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See LICENSE.md in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { DebugHelper, DockerDebugContext, DockerDebugScaffoldContext, ResolvedDebugConfiguration } from '../DebugHelper';
+import { PythonTaskHelper } from '../../tasks/python/PythonTaskHelper';
+import { DebugHelper, DockerDebugContext, DockerDebugScaffoldContext, inferContainerName, ResolvedDebugConfiguration } from '../DebugHelper';
 import { DockerDebugConfigurationBase } from '../DockerDebugConfigurationBase';
 import { DockerDebugConfiguration } from '../DockerDebugConfigurationProvider';
 
@@ -13,6 +14,8 @@ export interface PythonPathMapping {
 }
 
 export interface PythonDebugOptions {
+    host?: string;
+    port?: number;
     pathMappings?: PythonPathMapping[],
     justMyCode?: boolean,
 }
@@ -51,15 +54,13 @@ export class PythonDebugHelper implements DebugHelper {
             name: debugConfiguration.name,
             type: 'python',
             request: 'attach',
-            host: debugConfiguration.host || 'localhost',
-            port: debugConfiguration.port || 5678,
+            host: debugConfiguration.python.host || 'localhost',
+            port: debugConfiguration.python.port || 5678,
             pathMappings: debugConfiguration.python.pathMappings,
             justMyCode: debugConfiguration.python.justMyCode,
-
-            launchBrowser: debugConfiguration.launchBrowser,
             serverReadyAction: debugConfiguration.serverReadyAction,
             dockerOptions: {
-                containerNameToKill: containerName,
+                containerNameToKill: inferContainerName(debugConfiguration, context, PythonTaskHelper.getDefaultContainerName(context)),
                 dockerServerReadyAction: dockerServerReadyAction,
                 removeContainerAfterDebug: debugConfiguration.removeContainerAfterDebug
             },

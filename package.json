@@ -603,6 +603,16 @@
                             "python": {
                                 "description": "Options for building Python applications in Docker.",
                                 "properties": {
+                                    "host": {
+                                        "type": "string",
+                                        "description": "The host for remote debugging.",
+                                        "default": "localhost"
+                                    },
+                                    "port": {
+                                        "type": "number",
+                                        "description": "The port for remote debugging.",
+                                        "default": 5678
+                                    },
                                     "pathMappings": {
                                         "type": "array",
                                         "items": {

@@ -9,7 +9,7 @@ import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuil
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerPort, DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
 import { DockerRunTaskDefinition } from '../DockerRunTaskProvider';
-import { addPortWithoutConflicts, addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskContext, DockerTaskScaffoldContext, resolveWorkspaceFolderPath, TaskHelper } from '../TaskHelper';
+import { addPortWithoutConflicts, addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskContext, DockerTaskScaffoldContext, inferImageName, resolveWorkspaceFolderPath, TaskHelper } from '../TaskHelper';
 import { pyExtension } from './pyExtension';
 
 // tslint:disable-next-line: no-empty-interface
@@ -70,7 +70,7 @@ export class PythonTaskHelper implements TaskHelper {
         buildOptions.context = buildOptions.context || '${workspaceFolder}';
         buildOptions.dockerfile = buildOptions.dockerfile || '${workspaceFolder}/Dockerfile';
         // tslint:enable: no-invalid-template-strings
-        buildOptions.tag = buildOptions.tag || await PythonTaskHelper.getImageName(context);
+        buildOptions.tag = buildOptions.tag || PythonTaskHelper.getDefaultImageName(context);
         buildOptions.labels = buildOptions.labels || PythonTaskHelper.defaultLabels;
 
         return buildOptions;
@@ -80,19 +80,17 @@ export class PythonTaskHelper implements TaskHelper {
         const helperOptions = runDefinition.python || {};
         const runOptions = runDefinition.dockerRun;
 
-        let target;
-
         if (helperOptions.file) {
             helperOptions.file = path.relative(context.folder.uri.fsPath, resolveWorkspaceFolderPath(context.folder, helperOptions.file));
         }
 
-        target = helperOptions.file ? { file: helperOptions.file } : { module: helperOptions.module };
+        const target: pyExtension.FileTarget | pyExtension.ModuleTarget = helperOptions.file ? { file: helperOptions.file } : { module: helperOptions.module };
 
         const launcherCommand = await pyExtension.getRemoteLauncherCommand(target, helperOptions.args, { host: '0.0.0.0', port: 5678, wait: helperOptions.wait === undefined ? true : helperOptions.wait });
         const launcherFolder = await pyExtension.getLauncherFolderPath();
 
-        runOptions.image = runOptions.image || await this.inferImageToRun(context);
-        runOptions.containerName = runOptions.containerName || await PythonTaskHelper.getContainerName(context);
+        runOptions.image = inferImageName(runDefinition, context, PythonTaskHelper.getDefaultImageName(context));
+        runOptions.containerName = runOptions.containerName || PythonTaskHelper.getDefaultContainerName(context);
         runOptions.volumes = await this.inferVolumes(runOptions, launcherFolder); // This method internally checks the user-defined input first
         runOptions.ports = await this.inferPorts(runOptions); // This method internally checks the user-defined input first
 
@@ -102,9 +100,12 @@ export class PythonTaskHelper implements TaskHelper {
         return runOptions;
     }
 
-    private async inferImageToRun(context: DockerRunTaskContext): Promise<string> {
-        return context.buildDefinition && context.buildDefinition.dockerBuild && context.buildDefinition.dockerBuild.tag ||
-            await PythonTaskHelper.getImageName(context);
+    public static getDefaultImageName(context: DockerTaskContext): string {
+        return getValidImageName(context.folder.name, 'latest');
+    }
+
+    public static getDefaultContainerName(context: DockerTaskContext): string {
+        return `${getValidImageName(context.folder.name)}-dev`;
     }
 
     private async inferVolumes(runOptions: DockerRunOptions, launcherFolder: string): Promise<DockerContainerVolume[]> {
@@ -153,7 +154,7 @@ export class PythonTaskHelper implements TaskHelper {
 
     private async inferCommand(launcherCommand: string, launcherFolder: string): Promise<string> {
         let parts = launcherCommand.split(/\s/i);
-        parts = parts.map(part => {
+        parts = parts.map((part: string) => {
             if (part.includes(launcherFolder)) {
                 return part.replace(launcherFolder, '/pydbg').replace(/\\/g, '/');
             }
@@ -162,14 +163,6 @@ export class PythonTaskHelper implements TaskHelper {
         });
 
         return parts.slice(1).join(' ');
-    }
-
-    private static async getImageName(context: DockerTaskContext, tag?: string): Promise<string> {
-        return getValidImageName(context.folder.name, tag);
-    }
-
-    private static async getContainerName(context: DockerTaskContext, tag?: string): Promise<string> {
-        return `${getValidImageName(context.folder.name)}-${tag || 'dev'}`;
     }
 }
 
