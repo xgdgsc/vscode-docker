@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as path from 'path';
-import { getValidImageName } from '../../utils/getValidImageName';
+import { resolveFilePath } from '../../utils/resolveFilePath';
 import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerPort, DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
 import { DockerRunTaskDefinition } from '../DockerRunTaskProvider';
-import { addPortWithoutConflicts, addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskContext, DockerTaskScaffoldContext, inferImageName, resolveWorkspaceFolderPath, TaskHelper } from '../TaskHelper';
+import { addPortWithoutConflicts, addVolumeWithoutConflicts, DockerBuildTaskContext, DockerRunTaskContext, DockerTaskScaffoldContext, getDefaultContainerName, getDefaultImageName, inferImageName, TaskHelper } from '../TaskHelper';
 import { pyExtension } from './pyExtension';
 
 // tslint:disable-next-line: no-empty-interface
@@ -70,7 +70,7 @@ export class PythonTaskHelper implements TaskHelper {
         buildOptions.context = buildOptions.context || '${workspaceFolder}';
         buildOptions.dockerfile = buildOptions.dockerfile || '${workspaceFolder}/Dockerfile';
         // tslint:enable: no-invalid-template-strings
-        buildOptions.tag = buildOptions.tag || PythonTaskHelper.getDefaultImageName(context);
+        buildOptions.tag = buildOptions.tag || getDefaultImageName(context.folder.name);
         buildOptions.labels = buildOptions.labels || PythonTaskHelper.defaultLabels;
 
         return buildOptions;
@@ -81,7 +81,7 @@ export class PythonTaskHelper implements TaskHelper {
         const runOptions = runDefinition.dockerRun;
 
         if (helperOptions.file) {
-            helperOptions.file = path.relative(context.folder.uri.fsPath, resolveWorkspaceFolderPath(context.folder, helperOptions.file));
+            helperOptions.file = path.relative(context.folder.uri.fsPath, resolveFilePath(helperOptions.file, context.folder));
         }
 
         const target: pyExtension.FileTarget | pyExtension.ModuleTarget = helperOptions.file ? { file: helperOptions.file } : { module: helperOptions.module };
@@ -89,8 +89,8 @@ export class PythonTaskHelper implements TaskHelper {
         const launcherCommand = await pyExtension.getRemoteLauncherCommand(target, helperOptions.args, { host: '0.0.0.0', port: 5678, wait: helperOptions.wait === undefined ? true : helperOptions.wait });
         const launcherFolder = await pyExtension.getLauncherFolderPath();
 
-        runOptions.image = inferImageName(runDefinition, context, PythonTaskHelper.getDefaultImageName(context));
-        runOptions.containerName = runOptions.containerName || PythonTaskHelper.getDefaultContainerName(context);
+        runOptions.image = inferImageName(runDefinition, context, context.folder.name);
+        runOptions.containerName = runOptions.containerName || getDefaultContainerName(context.folder.name);
         runOptions.volumes = await this.inferVolumes(runOptions, launcherFolder); // This method internally checks the user-defined input first
         runOptions.ports = await this.inferPorts(runOptions); // This method internally checks the user-defined input first
 
@@ -98,14 +98,6 @@ export class PythonTaskHelper implements TaskHelper {
         runOptions.command = await this.inferCommand(launcherCommand, launcherFolder); // User-defined input is not considered
 
         return runOptions;
-    }
-
-    public static getDefaultImageName(context: DockerTaskContext): string {
-        return getValidImageName(context.folder.name, 'latest');
-    }
-
-    public static getDefaultContainerName(context: DockerTaskContext): string {
-        return `${getValidImageName(context.folder.name)}-dev`;
     }
 
     private async inferVolumes(runOptions: DockerRunOptions, launcherFolder: string): Promise<DockerContainerVolume[]> {
