@@ -60,6 +60,8 @@ export class PythonDebugHelper implements DebugHelper {
         */
         const dockerServerReadyAction: DockerServerReadyAction = undefined;
 
+        // TODO: python attach fails if we don't inject a brief sleep between the true preLaunchTask, and executing the attach
+        // Seems that the attempt to attach happens too quickly after `docker run` starts the container
         return {
             ...debugConfiguration,
             type: 'python',

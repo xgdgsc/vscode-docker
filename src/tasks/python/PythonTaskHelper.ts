@@ -3,8 +3,6 @@
  *  Licensed under the MIT License. See LICENSE.md in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as path from 'path';
-import { resolveFilePath } from '../../utils/resolveFilePath';
 import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerPort, DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
@@ -54,7 +52,7 @@ export class PythonTaskHelper implements TaskHelper {
                 platform: 'python',
                 python: {
                     // tslint:disable-next-line: no-invalid-template-strings
-                    file: '${file}',
+                    file: '${relativeFile}',
                     wait: true,
                 },
                 dockerRun: {},
@@ -80,9 +78,10 @@ export class PythonTaskHelper implements TaskHelper {
         const helperOptions = runDefinition.python || {};
         const runOptions = runDefinition.dockerRun;
 
-        if (helperOptions.file) {
+        // TODO: file
+        /*if (helperOptions.file) {
             helperOptions.file = path.relative(context.folder.uri.fsPath, resolveFilePath(helperOptions.file, context.folder));
-        }
+        }*/
 
         const target: pyExtension.FileTarget | pyExtension.ModuleTarget = helperOptions.file ? { file: helperOptions.file } : { module: helperOptions.module };
 
