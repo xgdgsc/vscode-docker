@@ -56,6 +56,7 @@ export class NetCoreTaskHelper implements TaskHelper {
                 dockerBuild: {
                     tag: getDefaultImageName(context.folder.name, 'dev'),
                     target: 'base',
+                    pull: true
                 },
                 netCore: {
                     appProject: unresolveFilePath(options.appProject, context.folder)
@@ -67,6 +68,7 @@ export class NetCoreTaskHelper implements TaskHelper {
                 dependsOn: ['build'],
                 dockerBuild: {
                     tag: getDefaultImageName(context.folder.name, 'latest'), // The 'latest' here is redundant but added to differentiate from above's 'dev'
+                    pull: true
                 },
                 netCore: {
                     appProject: unresolveFilePath(options.appProject, context.folder)
@@ -137,14 +139,6 @@ export class NetCoreTaskHelper implements TaskHelper {
         runOptions.volumes = await this.inferVolumes(context.folder, runOptions, helperOptions, ssl, userSecrets); // Volumes specifically are unioned with the user input (their input does not override except where the container path is the same)
 
         return runOptions;
-    }
-
-    public static async inferAppFolder(folder: WorkspaceFolder, helperOptions: NetCoreTaskOptions | NetCoreDebugOptions): Promise<string> {
-        if (helperOptions.appProject) {
-            return path.dirname(helperOptions.appProject);
-        }
-
-        return folder.uri.fsPath;
     }
 
     public static async inferAppProject(folder: WorkspaceFolder, helperOptions?: NetCoreTaskOptions | NetCoreDebugOptions): Promise<string> {
