@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See LICENSE.md in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import { unresolveFilePath } from '../../utils/resolveFilePath';
 import { DockerBuildOptions, DockerBuildTaskDefinitionBase } from '../DockerBuildTaskDefinitionBase';
 import { DockerBuildTaskDefinition } from '../DockerBuildTaskProvider';
 import { DockerContainerPort, DockerContainerVolume, DockerRunOptions, DockerRunTaskDefinitionBase } from '../DockerRunTaskDefinitionBase';
@@ -38,7 +39,12 @@ export class PythonTaskHelper implements TaskHelper {
                 type: 'docker-build',
                 label: 'docker-build',
                 platform: 'python',
-                dockerBuild: {},
+                dockerBuild: {
+                    tag: getDefaultImageName(context.folder.name),
+                    dockerfile: unresolveFilePath(context.dockerfile, context.folder),
+                    // tslint:disable-next-line: no-invalid-template-strings
+                    context: '${workspace}',
+                },
             }
         ];
     }
