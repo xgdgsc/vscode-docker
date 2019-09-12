@@ -24,8 +24,8 @@ export interface DockerTaskContext {
     cancellationToken?: CancellationToken;
 }
 
-// tslint:disable-next-line: no-empty-interface
 export interface DockerTaskScaffoldContext extends DockerTaskContext {
+    dockerfile: string;
 }
 
 // tslint:disable-next-line: no-empty-interface

@@ -28,7 +28,7 @@ Press `F1` and search for `Docker: Add Docker Files to Workspace` to generate `D
 
 ![dockerfile](resources/readme/generateFiles.gif)
 
-> Note: The `docker-compose.yml` and `docker-compose.debug.yml` files are not generated for .NET Core applications.
+> Note: The `docker-compose.yml` and `docker-compose.debug.yml` files are not generated for all platforms, such as .NET Core applications, and are optional for Node.js applications.
 
 ### Editing
 
@@ -71,15 +71,6 @@ After the container is started, you will be prompted to sign in to your Azure ac
 ### Connect to `docker-machine`
 
 The default behavior of the extension is to connect to the local Docker daemon. You can connect to a docker-machine instance if you launch Visual Studio Code and have the [Docker environment variables](https://docs.docker.com/machine/reference/env/) set in your environment or through the following VS Code settings: `docker.host`, `docker.certPath`, `docker.tlsVerify`, and `docker.machineName`.
-
-### VS Code remote development
-
-By default, the Docker extension will run against your local VS Code instance. You can change this behavior to run against your remote VS Code instance with the following VS Code setting:
-```json
-"remote.extensionKind": {
-    "ms-azuretools.vscode-docker": "workspace"
-}
-```
 
 ## Contributing
 
